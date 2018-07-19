@@ -20,14 +20,17 @@ extern crate url_serde;
 mod client;
 mod connect;
 mod error;
+mod influx;
 mod settings;
 
 use std::time::Instant;
 
 use futures::future::{self, Either};
 use futures::{Future, Stream};
+use hyper::Client as HyperClient;
 use tokio::timer::{Delay, Interval};
 
+use connect::HyperClientService;
 use error::{Error, Result};
 use settings::Settings;
 
@@ -36,6 +39,12 @@ fn main() -> Result<()> {
 
     // schedule execution of the test reporter
     let reports = schedule_reports(&settings).map_err(|err| eprintln!("Report error: {:?}", err));
+
+    let influx_client = client::Client::new(
+        HyperClientService::new(HyperClient::new()),
+        settings.influx_url().clone(),
+    );
+    let _influx = influx::Influx::new(settings.influx_db_name().to_string(), influx_client);
 
     tokio::run(reports.map(|_| println!("All done.")));
 

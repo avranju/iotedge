@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
+use bytes::Bytes;
 use futures::future::{self, Either};
 use futures::{Future, Stream};
 use http::Uri;
@@ -35,17 +36,16 @@ where
         }
     }
 
-    pub fn request<BodyT, ResponseT>(
+    pub fn request_bytes<BodyT>(
         &self,
         method: Method,
         path: &str,
         query: Option<HashMap<&str, &str>>,
         body: Option<BodyT>,
         add_if_match: bool,
-    ) -> impl Future<Item = Option<ResponseT>, Error = Error>
+    ) -> impl Future<Item = Option<Bytes>, Error = Error>
     where
         BodyT: Serialize,
-        ResponseT: 'static + DeserializeOwned,
     {
         let query = query
             .unwrap_or_else(HashMap::new)
@@ -108,15 +108,38 @@ where
                         if body.len() == 0 {
                             Ok(None)
                         } else {
-                            serde_json::from_slice::<ResponseT>(&body)
-                                .map_err(Error::from)
-                                .map(Option::Some)
+                            Ok(Some(body.into_bytes()))
                         }
                     });
 
                 Either::A(res)
             })
             .unwrap_or_else(|e| Either::B(future::err(e)))
+    }
+
+    pub fn request<BodyT, ResponseT>(
+        &self,
+        method: Method,
+        path: &str,
+        query: Option<HashMap<&str, &str>>,
+        body: Option<BodyT>,
+        add_if_match: bool,
+    ) -> impl Future<Item = Option<ResponseT>, Error = Error>
+    where
+        BodyT: Serialize,
+        ResponseT: 'static + DeserializeOwned,
+    {
+        self.request_bytes(method, path, query, body, add_if_match)
+            .and_then(|bytes| {
+                bytes
+                    .map(|bytes| {
+                        serde_json::from_slice::<ResponseT>(&bytes)
+                            .map_err(Error::from)
+                            .map(|resp| future::ok(Some(resp)))
+                            .unwrap_or_else(|err| future::err(err))
+                    })
+                    .unwrap_or(future::ok(None))
+            })
     }
 }
 

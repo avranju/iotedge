@@ -4,8 +4,9 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::io::Error as IoError;
 use std::num::ParseIntError;
-use std::str;
+use std::str::{self, Utf8Error};
 
+use hex::FromHexError;
 use http::Error as HttpError;
 use hyper::{Error as HyperError, StatusCode as HyperStatusCode};
 use serde_json::Error as SerdeJsonError;
@@ -25,6 +26,12 @@ pub enum Error {
     Http(HttpError),
     Service(HyperStatusCode, String),
     Timer(TimerError),
+    InvalidUrlScheme,
+    MissingPath,
+    Hex(FromHexError),
+    Utf8(Utf8Error),
+    Connect(String),
+    InvalidConnectState,
 }
 
 impl StdError for Error {}
@@ -86,5 +93,17 @@ impl<'a> From<(HyperStatusCode, &'a [u8])> for Error {
                 .unwrap_or_else(|_| "Could not decode error message")
                 .to_string(),
         )
+    }
+}
+
+impl From<FromHexError> for Error {
+    fn from(err: FromHexError) -> Error {
+        Error::Hex(err)
+    }
+}
+
+impl From<Utf8Error> for Error {
+    fn from(err: Utf8Error) -> Error {
+        Error::Utf8(err)
     }
 }

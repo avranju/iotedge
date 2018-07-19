@@ -3,8 +3,10 @@
 // #[deny(warnings)]
 
 extern crate azure_sdk_for_rust;
+extern crate bytes;
 extern crate chrono;
 extern crate futures;
+extern crate hex;
 extern crate http;
 extern crate hyper;
 extern crate serde;
@@ -19,9 +21,11 @@ extern crate url_serde;
 
 mod client;
 mod connect;
+mod docker;
 mod error;
 mod influx;
 mod settings;
+mod uds;
 
 use std::time::Instant;
 
@@ -31,8 +35,10 @@ use hyper::Client as HyperClient;
 use tokio::timer::{Delay, Interval};
 
 use connect::HyperClientService;
+use docker::DockerClient;
 use error::{Error, Result};
 use settings::Settings;
+use uds::{UnixConnector, Uri};
 
 fn main() -> Result<()> {
     let settings = Settings::default().merge_env()?;
@@ -45,6 +51,12 @@ fn main() -> Result<()> {
         settings.influx_url().clone(),
     );
     let _influx = influx::Influx::new(settings.influx_db_name().to_string(), influx_client);
+
+    let docker_client = client::Client::new(
+        HyperClientService::new(HyperClient::builder().build(UnixConnector)),
+        Uri::from_url(settings.docker_url())?.into(),
+    );
+    let _docker = DockerClient::new(docker_client);
 
     tokio::run(reports.map(|_| println!("All done.")));
 

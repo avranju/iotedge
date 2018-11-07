@@ -1,0 +1,10 @@
+[package]
+name = "kube-rs"
+version = "0.1.0"
+authors = ["Rajasekharan Vengalil <rajave@microsoft.com>"]
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+serde = "1.0"
+serde_derive = "1.0"
+serde_yaml = "0.8"

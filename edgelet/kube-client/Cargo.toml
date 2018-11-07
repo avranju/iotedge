@@ -1,0 +1,7 @@
+[package]
+name = "kube-rs"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+
+[dependencies]
+k8s-openapi = { path = "../k8s-openapi", features = ["v1_12"] }

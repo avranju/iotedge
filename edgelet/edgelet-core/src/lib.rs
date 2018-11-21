@@ -27,6 +27,8 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate sha2;
 extern crate tokio;
+extern crate url;
+extern crate url_serde;
 
 extern crate edgelet_utils;
 
@@ -37,6 +39,7 @@ mod error;
 mod identity;
 mod module;
 pub mod pid;
+pub mod settings;
 pub mod watchdog;
 pub mod workload;
 
@@ -52,6 +55,7 @@ pub use module::{
     LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
     ModuleRuntimeState, ModuleSpec, ModuleStatus, RegistryOperation, RuntimeOperation, SystemInfo,
 };
+pub use settings::{Certificates, Connect, Dps, Listen, Manual, Provisioning, RuntimeSettings};
 pub use workload::WorkloadConfig;
 
 lazy_static! {

@@ -39,6 +39,9 @@ fn get_message(
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
+    #[fail(display = "Could not read settings file")]
+    SettingsFile,
+
     #[fail(display = "Could not clone create options")]
     CloneCreateOptions,
 
@@ -80,6 +83,15 @@ pub enum ErrorKind {
 
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
+
+    #[fail(display = "Invalid socket URI")]
+    InvalidSocketUri,
+
+    #[fail(display = "Docker module runtime has not been initialized. Call 'init' first.")]
+    Uninitialized,
+
+    #[fail(display = "Docker module runtime has already been initialized.")]
+    AlreadyInitialized,
 }
 
 impl Fail for Error {

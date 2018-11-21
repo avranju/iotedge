@@ -68,8 +68,8 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
 
     // initialize iotedged
     info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
-    let settings = app::init_win_svc()?;
-    let main = super::Main::new(settings);
+    let (runtime, settings) = app::init_win_svc()?;
+    let main = super::Main::new(runtime, settings);
     let shutdown_signal = signal::shutdown()
         .select(receiver.map_err(|_| ()))
         .map(move |_| {
@@ -97,8 +97,8 @@ fn run_as_service(_: Vec<OsString>) -> Result<(), Error> {
 }
 
 pub fn run_as_console() -> Result<(), Error> {
-    let settings = app::init()?;
-    let main = super::Main::new(settings);
+    let (runtime, settings) = app::init()?;
+    let main = super::Main::new(runtime, settings);
 
     let shutdown_signal = signal::shutdown();
     main.run_until(shutdown_signal)?;

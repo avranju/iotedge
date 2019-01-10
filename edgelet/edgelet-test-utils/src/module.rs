@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::marker::PhantomData;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use edgelet_core::*;
@@ -100,6 +101,48 @@ impl<E: Clone + Fail> Module for TestModule<E> {
     }
 }
 
+pub struct TestSettings {
+    provisioning: Provisioning,
+    agent: ModuleSpec<TestConfig>,
+    hostname: String,
+    connect: Connect,
+    listen: Listen,
+    homedir: PathBuf,
+    certificates: Option<Certificates>,
+}
+
+impl RuntimeSettings for TestSettings {
+    type Config = TestConfig;
+
+    fn provisioning(&self) -> &Provisioning {
+        &self.provisioning
+    }
+
+    fn agent(&self) -> &ModuleSpec<TestConfig> {
+        &self.agent
+    }
+
+    fn hostname(&self) -> &str {
+        &self.hostname
+    }
+
+    fn connect(&self) -> &Connect {
+        &self.connect
+    }
+
+    fn listen(&self) -> &Listen {
+        &self.listen
+    }
+
+    fn homedir(&self) -> &Path {
+        &self.homedir
+    }
+
+    fn certificates(&self) -> Option<&Certificates> {
+        self.certificates.as_ref()
+    }
+}
+
 #[derive(Clone)]
 pub struct TestRuntime<E> {
     module: Result<TestModule<E>, E>,
@@ -154,6 +197,7 @@ impl<E> From<EmptyBody<E>> for Body {
 impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
     type Error = E;
     type Config = TestConfig;
+    type Settings = TestSettings;
     type Module = TestModule<E>;
     type ModuleRegistry = TestRegistry<E>;
     type Chunk = String;
@@ -182,7 +226,7 @@ impl<E: Clone + Fail> ModuleRuntime for TestRuntime<E> {
         }
     }
 
-    fn init(&self) -> Self::InitFuture {
+    fn init(&mut self, _settings: Self::Settings) -> Self::InitFuture {
         match self.module {
             Ok(_) => future::ok(()),
             Err(ref e) => future::err(e.clone()),

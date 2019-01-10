@@ -85,6 +85,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
     use std::time::Duration;
 
     use super::*;
@@ -95,8 +96,9 @@ mod tests {
     use futures::{future, stream};
     use module::{
         LogOptions, Module, ModuleRegistry, ModuleRuntimeState, ModuleSpec,
-        SystemInfo as CoreSystemInfo,
+        SystemInfo as CoreSystemInfo
     };
+    use settings::{Certificates, Connect, Listen, Provisioning, RuntimeSettings};
 
     #[test]
     fn should_authorize_anonymous() {
@@ -234,7 +236,7 @@ mod tests {
     }
 
     struct TestConfig {}
-
+    
     #[derive(Clone, Copy)]
     enum TestModuleBehavior {
         Default,
@@ -318,6 +320,40 @@ mod tests {
         behavior: TestModuleListBehavior,
     }
 
+    struct TestSettings {}
+
+    impl RuntimeSettings for TestSettings {
+        type Config = TestConfig;
+
+        fn provisioning(&self) -> &Provisioning {
+            unimplemented!();
+        }
+
+        fn agent(&self) -> &ModuleSpec<Self::Config> {
+            unimplemented!();
+        }
+
+        fn hostname(&self) -> &str {
+            unimplemented!();
+        }
+
+        fn connect(&self) -> &Connect {
+            unimplemented!();
+        }
+
+        fn listen(&self) -> &Listen {
+            unimplemented!();
+        }
+
+        fn homedir(&self) -> &Path {
+            unimplemented!();
+        }
+
+        fn certificates(&self) -> Option<&Certificates> {
+            unimplemented!();
+        }
+    }
+
     impl TestModuleList {
         pub fn new(modules: Vec<TestModule>) -> Self {
             TestModuleList {
@@ -351,6 +387,7 @@ mod tests {
     impl ModuleRuntime for TestModuleList {
         type Error = Error;
         type Config = TestConfig;
+        type Settings = TestSettings;
         type Module = TestModule;
         type ModuleRegistry = Self;
         type Chunk = String;
@@ -369,7 +406,7 @@ mod tests {
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
 
-        fn init(&self) -> Self::InitFuture {
+        fn init(&mut self, _settings: Self::Settings) -> Self::InitFuture {
             notimpl_error!()
         }
 

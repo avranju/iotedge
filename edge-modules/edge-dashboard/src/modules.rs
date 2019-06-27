@@ -14,7 +14,7 @@ pub fn get_management_uri(contents: &str) -> Option<String> {
     let start = contents.find(start_pattern)? + start_pattern.len();
     let end = contents.find("workload_uri: ")?;
     let pre = contents[start..end].trim();
-    Some(pre[1..pre.len()-1].to_string())
+    Some(pre[1..pre.len() - 1].to_string())
 }
 
 pub fn get_list(uri: &str) -> Result<Vec<SparseModule>, url::ParseError> {
@@ -28,8 +28,15 @@ pub fn get_list(uri: &str) -> Result<Vec<SparseModule>, url::ParseError> {
     //     Ok(Async::NotReady)    => ,
     //     Err(e)                 => Err(e),
     // }
-    
-    let ret = mod_list.wait().unwrap().iter().map(|m| SparseModule {name: m.name().to_owned()}).collect();
-    
+
+    let ret = mod_list
+        .wait()
+        .unwrap()
+        .iter()
+        .map(|m| SparseModule {
+            name: m.name().to_owned(),
+        })
+        .collect();
+
     Ok(ret)
 }

@@ -165,24 +165,21 @@ enum StartApiReturnStatus {
 
 pub struct Main<M>
 where
-    M: MakeModuleRuntime + ModuleRuntime,
+    M: MakeModuleRuntime,
 {
     settings: M::Settings,
 }
 
 impl<M> Main<M>
 where
-    M: 'static + ModuleRuntime + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
-    M: MakeModuleRuntime<
-        ProvisioningResult = ProvisioningResult,
-        Config = <M as ModuleRuntime>::Config,
-        ModuleRuntime = M,
-    >,
-    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
+    M: MakeModuleRuntime<ProvisioningResult = ProvisioningResult>,
+    M::ModuleRuntime: 'static + Authenticator<Request = Request<Body>> + Clone + Send + Sync,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config:
+        Clone + DeserializeOwned + Serialize,
     M::Settings: 'static + Clone + Serialize,
-    M::Logs: Into<Body>,
-    <M as Authenticator>::Error: Fail + Sync,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     pub fn new(settings: M::Settings) -> Self {
         Main { settings }
@@ -258,7 +255,7 @@ where
             ($key_store:ident, $provisioning_result:ident, $root_key:ident) => {{
                 info!("Finished provisioning edge device.");
 
-                let runtime: M = init_runtime(
+                let runtime: M::ModuleRuntime = init_runtime(
                     settings.clone(),
                     &mut tokio_runtime,
                     $provisioning_result.clone(),
@@ -557,12 +554,12 @@ fn check_settings_state<M, C>(
     subdir_path: PathBuf,
     filename: &str,
     settings: &M::Settings,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    M: MakeModuleRuntime + ModuleRuntime + 'static,
+    M: MakeModuleRuntime + 'static,
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
@@ -602,12 +599,12 @@ fn reconfigure<M, C>(
     subdir: PathBuf,
     filename: &str,
     settings: &M::Settings,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(), Error>
 where
-    M: MakeModuleRuntime + ModuleRuntime + 'static,
+    M: MakeModuleRuntime + 'static,
     M::Settings: Serialize,
     C: CreateCertificate + GetIssuerAlias + MasterEncryptionKey,
 {
@@ -656,7 +653,7 @@ where
 fn start_api<HC, K, F, C, W, M>(
     settings: &M::Settings,
     hyper_client: HC,
-    runtime: &M,
+    runtime: &M::ModuleRuntime,
     key_store: &DerivedKeyStore<K>,
     workload_config: W,
     root_key: K,
@@ -678,12 +675,12 @@ where
         + Sync
         + 'static,
     W: WorkloadConfig + Clone + Send + Sync + 'static,
-    M: ModuleRuntime + Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
-    M: MakeModuleRuntime<Config = <M as ModuleRuntime>::Config>,
-    <M::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
-    <M as Authenticator>::Error: Fail + Sync,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    M::ModuleRuntime: Authenticator<Request = Request<Body>> + Send + Sync + Clone + 'static,
+    M: MakeModuleRuntime,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config: Clone + DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
+    <M::ModuleRuntime as Authenticator>::Error: Fail + Sync,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
 {
     let hub_name = workload_config.iot_hub_name().to_string();
     let device_id = workload_config.device_id().to_string();
@@ -798,10 +795,9 @@ fn init_runtime<M>(
     settings: M::Settings,
     tokio_runtime: &mut tokio::runtime::Runtime,
     provisioning_result: M::ProvisioningResult,
-) -> Result<M, Error>
+) -> Result<M::ModuleRuntime, Error>
 where
-    M: ModuleRuntime
-        + MakeModuleRuntime<ModuleRuntime = M, Config = <M as ModuleRuntime>::Config>
+    M: MakeModuleRuntime
         + Send
         + 'static,
     M::Future: 'static,
@@ -1078,17 +1074,16 @@ where
     C: CreateCertificate + Clone,
     K: 'static + Sign + Clone + Send + Sync,
     HC: 'static + ClientImpl + Send + Sync,
-    M: MakeModuleRuntime
-        + ModuleRuntime
-        + Authenticator<Request = Request<Body>>
+    M: MakeModuleRuntime,
+    M::ModuleRuntime: Authenticator<Request = Request<Body>>
         + Send
         + Sync
         + Clone
         + 'static,
-    <M::AuthenticateFuture as Future>::Error: Fail,
-    for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
-    <M::Module as Module>::Config: DeserializeOwned + Serialize,
-    M::Logs: Into<Body>,
+    <<M::ModuleRuntime as Authenticator>::AuthenticateFuture as Future>::Error: Fail,
+    for<'r> &'r <M::ModuleRuntime as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
+    <<M::ModuleRuntime as ModuleRuntime>::Module as Module>::Config: DeserializeOwned + Serialize,
+    <M::ModuleRuntime as ModuleRuntime>::Logs: Into<Body>,
 {
     info!("Starting management API...");
 
